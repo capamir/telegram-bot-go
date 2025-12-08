@@ -63,7 +63,7 @@ func startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 // Handler for /help command
 func helpHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-    helpText := `📚 *Available Commands:*
+    helpText := `📚 <b>Available Commands:</b>
 
 /start - Start the bot
 /help - Show this help message
@@ -73,7 +73,7 @@ Just send me any text message and I'll repeat it back to you!`
     _, err := b.SendMessage(ctx, &bot.SendMessageParams{
         ChatID:    update.Message.Chat.ID,
         Text:      helpText,
-        ParseMode: models.ParseModeMarkdown,
+        ParseMode: models.ParseModeHTML,  
     })
     if err != nil {
         log.Println("Error sending help message:", err)
