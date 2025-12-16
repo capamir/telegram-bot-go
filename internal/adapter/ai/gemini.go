@@ -42,7 +42,7 @@ func NewClient(ctx context.Context, apiKey, model string) (*Client, error) {
 }
 
 // GenerateResponse sends a prompt to Gemini and returns the AI response
-func (c *Client) GenerateResponse(ctx context.Context, prompt string) (string, error) {
+func (c *Client) Generate(ctx context.Context, prompt string) (string, error) {
 	// Validate prompt
 	if strings.TrimSpace(prompt) == "" {
 		return "", fmt.Errorf("prompt cannot be empty")
