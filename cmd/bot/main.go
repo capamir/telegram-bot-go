@@ -1,45 +1,56 @@
 package main
 
 import (
-	"context"
-	"log"
-	"os"
-	"os/signal"
+    "context"
+    "log"
+    "os"
+    "os/signal"
 
-	"github.com/capamir/telegram-bot-go/internal/bot"
-	"github.com/capamir/telegram-bot-go/internal/config"
+    "github.com/capamir/telegram-bot-go/internal/adapter/ai"
+    "github.com/capamir/telegram-bot-go/internal/bot"
+    "github.com/capamir/telegram-bot-go/internal/config"
+    "github.com/capamir/telegram-bot-go/internal/usecase"
 )
 
 func main() {
-	log.Println("🚀 Starting Telegram Bot...")
+    log.Println("🚀 Starting Telegram Bot...")
 
-	// Load configuration
-	cfg, err := config.Load()
-	if err != nil {
-		log.Fatalf("❌ Configuration error: %v", err)
-	}
-	log.Println("✅ Configuration loaded")
+    // 1. Load configuration
+    cfg, err := config.Load()
+    if err != nil {
+        log.Fatalf("❌ Configuration error: %v", err)
+    }
+    log.Println("✅ Configuration loaded")
 
-	// Create context with interrupt signal handling
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
+    // 2. Root context with graceful shutdown
+    ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+    defer cancel()
 
-	// Initialize bot
-	b, err := bot.New(ctx, cfg.TelegramToken)
-	if err != nil {
-		log.Fatalf("❌ Failed to create bot: %v", err)
-	}
-	log.Println("✅ Bot initialized")
+    // 3. Create Gemini client (infrastructure / adapter layer)
+    geminiClient, err := ai.NewClient(
+        ctx,
+        cfg.GeminiAPIKey,
+        cfg.GeminiModel,
+    )
+    if err != nil {
+        log.Fatalf("❌ Failed to create Gemini client: %v", err)
+    }
 
-	// Register all command handlers
-	b.RegisterHandlers()
-	log.Println("✅ Handlers registered")
+    // 4. Create use case (application layer)
+    chatUsecase := usecase.NewChatUsecase(geminiClient)
 
-	// Start bot
-	log.Println("✅ Bot is running! Press Ctrl+C to stop.")
-	log.Println("📱 Send /start to your bot to begin")
-	
-	b.Start(ctx)
+    // 5. Create Telegram bot (delivery layer)
+    b, err := bot.New(
+        ctx,
+        cfg.TelegramToken,
+        chatUsecase,
+    )
+    if err != nil {
+        log.Fatalf("❌ Failed to start bot: %v", err)
+    }
 
-	log.Println("👋 Bot stopped gracefully")
+    // 6. Start bot (blocking until context is cancelled)
+    b.Start(ctx)
+
+    log.Println("👋 Bot stopped gracefully")
 }
