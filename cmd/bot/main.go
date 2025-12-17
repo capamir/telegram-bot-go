@@ -49,6 +49,9 @@ func main() {
         log.Fatalf("❌ Failed to start bot: %v", err)
     }
 
+	b.RegisterHandlers()
+	log.Println("✅ Handlers registered")
+	
     // 6. Start bot (blocking until context is cancelled)
     b.Start(ctx)
 

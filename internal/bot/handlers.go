@@ -11,15 +11,15 @@ import (
 
 // StartHandler handles the /start command
 func (b *Bot) StartHandler(ctx context.Context, tgBot *bot.Bot, update *models.Update) {
-	welcomeText := `👋 *Welcome to AI Bot!*
+	welcomeText := `👋 Welcome to AI Bot!
 
 I'm an intelligent assistant powered by Google Gemini AI, built with Go.
 
-*Commands:*
+Commands:
 /start - Show this message
 /help - Get detailed help
 
-💬 *Just send me any message and I'll respond intelligently!*
+💬 Just send me any message and I'll respond intelligently!
 
 Examples:
 • Ask me questions
@@ -28,9 +28,9 @@ Examples:
 • Have a conversation`
 
 	_, err := tgBot.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:    update.Message.Chat.ID,
-		Text:      welcomeText,
-		ParseMode: models.ParseModeMarkdown,
+		ChatID: update.Message.Chat.ID,
+		Text:   welcomeText,
+		// ← Remove ParseMode line
 	})
 	if err != nil {
 		log.Printf("Error sending start message: %v", err)
@@ -39,16 +39,16 @@ Examples:
 
 // HelpHandler handles the /help command
 func (b *Bot) HelpHandler(ctx context.Context, tgBot *bot.Bot, update *models.Update) {
-	helpText := `📚 *Help & Information*
+	helpText := `📚 Help & Information
 
-*How to Use:*
+How to Use:
 Simply send me any text message and I'll respond using AI!
 
-*Available Commands:*
+Available Commands:
 /start - Welcome message
 /help - This help message
 
-*What I Can Do:*
+What I Can Do:
 • Answer questions on any topic
 • Translate text between languages
 • Explain complex concepts
@@ -56,18 +56,18 @@ Simply send me any text message and I'll respond using AI!
 • Provide recommendations
 • And much more!
 
-*Examples:*
+Examples:
 "What is quantum computing?"
 "Translate 'hello' to Persian"
 "Explain recursion simply"
 "Tell me a joke"
 
-_Powered by Google Gemini 2.5 Flash_ 🤖✨`
+Powered by Google Gemini 2.5 Flash 🤖✨`
 
 	_, err := tgBot.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:    update.Message.Chat.ID,
-		Text:      helpText,
-		ParseMode: models.ParseModeMarkdown,
+		ChatID: update.Message.Chat.ID,
+		Text:   helpText,
+		// ← Remove ParseMode line
 	})
 	if err != nil {
 		log.Printf("Error sending help message: %v", err)
