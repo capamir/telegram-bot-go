@@ -3,9 +3,11 @@ package bot
 import (
 	"context"
 	"fmt"
+	"strings"
 
-	"github.com/go-telegram/bot"
 	"github.com/capamir/telegram-bot-go/internal/usecase"
+	"github.com/go-telegram/bot"
+	"github.com/go-telegram/bot/models"
 )
 
 // Bot wraps the Telegram bot with custom functionality
@@ -40,6 +42,19 @@ func New(ctx context.Context, token string, uc *usecase.ChatUsecase) (*Bot, erro
 
 // RegisterHandlers registers all command handlers for the bot
 func (b *Bot) RegisterHandlers() {
-	b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, b.StartHandler)
-	b.RegisterHandler(bot.HandlerTypeMessageText, "/help", bot.MatchTypeExact, b.HelpHandler)
+    // Command handlers
+    b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, b.StartHandler)
+    b.RegisterHandler(bot.HandlerTypeMessageText, "/help", bot.MatchTypeExact, b.HelpHandler)
+    
+    // All tone commands use the same handler
+    b.RegisterHandler(bot.HandlerTypeMessageText, "/ask", bot.MatchTypePrefix, b.toneCommandHandler)
+    b.RegisterHandler(bot.HandlerTypeMessageText, "/serious", bot.MatchTypePrefix, b.toneCommandHandler)
+    b.RegisterHandler(bot.HandlerTypeMessageText, "/satirical", bot.MatchTypePrefix, b.toneCommandHandler)
+    b.RegisterHandler(bot.HandlerTypeMessageText, "/friendly", bot.MatchTypePrefix, b.toneCommandHandler)
+    b.RegisterHandler(bot.HandlerTypeMessageText, "/professional", bot.MatchTypePrefix, b.toneCommandHandler)
+    
+    // Default handler
+    b.RegisterHandlerMatchFunc(func(update *models.Update) bool {
+        return update.Message != nil && update.Message.Text != "" && !strings.HasPrefix(update.Message.Text, "/")
+    }, b.defaultHandler)
 }

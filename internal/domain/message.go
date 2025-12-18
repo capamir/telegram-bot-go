@@ -6,9 +6,10 @@ type ThinkingMode string
 type CommandType string
 
 const (
-	ToneSatirical Tone = "satirical"
-	ToneSerious   Tone = "serious"
-	ToneFriendly  Tone = "friendly"
+	ToneSatirical    Tone = "satirical"
+	ToneSerious      Tone = "serious"
+	ToneFriendly     Tone = "friendly"
+	ToneProfessional Tone = "professional"
 )
 
 const (

@@ -76,6 +76,8 @@ func buildPrompt(msg *domain.Message) string {
         instruction = "Provide a professional, serious answer: "
     case domain.ToneFriendly:
         instruction = "Respond in a friendly, casual way: "
+	case domain.ToneProfessional:
+	    instruction = "Respond in concise, professional business language: "
     default:
         instruction = ""
     }
