@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 
@@ -80,6 +81,33 @@ Powered by Google Gemini 2.5 Flash 🤖✨`
     }
 }
 
+// defaultHandler handles all non-command messages
+func (b *Bot) defaultHandler(ctx context.Context, tgBot *bot.Bot, update *models.Update) {
+    // Only process text messages
+    if update.Message == nil || update.Message.Text == "" {
+        return
+    }
+    
+    helpText := `ℹ️ How to Use This Bot
+
+To chat with me, choose a tone command:
+
+• /ask - Default friendly conversation
+• /serious - Professional, detailed answers
+• /satirical - Sarcastic, humorous responses
+• /friendly - Casual conversation
+
+Example:
+/satirical Why is Go better than Python?
+
+Type /help for more information.`
+    
+    _, _ = tgBot.SendMessage(ctx, &bot.SendMessageParams{
+        ChatID: update.Message.Chat.ID,
+        Text:   helpText,
+    })
+}
+
 // handleAICommand is a shared helper for all AI tone commands
 func (b *Bot) handleAICommand(
 	ctx context.Context,
@@ -118,10 +146,13 @@ func (b *Bot) handleAICommand(
 		return
 	}
 
-	// 5. Send response
+	// 5. Format and send response
+	formattedResponse := formatResponseWithQuestion(text, response.Text)
+
 	_, err = tgBot.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
-		Text:   response.Text,
+		Text:   formattedResponse,
+		ParseMode: models.ParseModeHTML,
 	})
 	if err != nil {
 		log.Printf("Error sending response: %v", err)
@@ -150,30 +181,14 @@ func (b *Bot) toneCommandHandler(ctx context.Context, tgBot *bot.Bot, update *mo
     b.handleAICommand(ctx, tgBot, update, tone, command)
 }
 
-// defaultHandler handles all non-command messages - now AI-powered!
-// defaultHandler handles all non-command messages
-func (b *Bot) defaultHandler(ctx context.Context, tgBot *bot.Bot, update *models.Update) {
-    // Only process text messages
-    if update.Message == nil || update.Message.Text == "" {
-        return
-    }
+// formatResponseWithQuestion prepends the user's question to the AI response
+func formatResponseWithQuestion(question, aiResponse string) string {
+    // Escape only < > & for HTML
+    question = strings.ReplaceAll(question, "&", "&amp;")
+    question = strings.ReplaceAll(question, "<", "&lt;")
+    question = strings.ReplaceAll(question, ">", "&gt;")
     
-    helpText := `ℹ️ How to Use This Bot
-
-To chat with me, choose a tone command:
-
-• /ask - Default friendly conversation
-• /serious - Professional, detailed answers
-• /satirical - Sarcastic, humorous responses
-• /friendly - Casual conversation
-
-Example:
-/satirical Why is Go better than Python?
-
-Type /help for more information.`
-    
-    _, _ = tgBot.SendMessage(ctx, &bot.SendMessageParams{
-        ChatID: update.Message.Chat.ID,
-        Text:   helpText,
-    })
+    return fmt.Sprintf("❓ <b>Question:</b>\n%s\n\n📝 <b>Answer:</b>\n%s", 
+        question, 
+        aiResponse)
 }
