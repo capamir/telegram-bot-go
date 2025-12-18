@@ -67,20 +67,13 @@ func (uc *ChatUsecase) HandleMessage(
 
 // buildPrompt constructs the AI prompt based on domain rules.
 func buildPrompt(msg *domain.Message) string {
-    var instruction string
-
-    switch msg.Tone {
-    case domain.ToneSatirical:
-        instruction = "Respond with sarcasm and humor: "
-    case domain.ToneSerious:
-        instruction = "Provide a professional, serious answer: "
-    case domain.ToneFriendly:
-        instruction = "Respond in a friendly, casual way: "
-	case domain.ToneProfessional:
-	    instruction = "Respond in concise, professional business language: "
-    default:
-        instruction = ""
+    instruction := getToneInstruction(msg.Tone)
+    
+    // If instruction exists, format as system prompt + user question
+    if instruction != "" {
+        return instruction + "\n\nUser question: " + msg.Text
     }
-
-    return instruction + msg.Text
+    
+    // Fallback to direct question
+    return msg.Text
 }
