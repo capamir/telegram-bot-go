@@ -1,5 +1,5 @@
 # Telegram AI Bot (Go)
-**v0.3.0** - Tone Commands with Enhanced Prompts
+**v0.4.2** - Domain Layer
 
 A Telegram bot powered by Google Gemini AI, built with Clean Architecture in Go.
 
