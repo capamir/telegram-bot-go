@@ -1,5 +1,5 @@
 # Telegram AI Bot (Go)
-**v0.4.2** - Domain Layer
+**v0.4.2** - diary repository interface compiles
 
 A Telegram bot powered by Google Gemini AI, built with Clean Architecture in Go.
 
