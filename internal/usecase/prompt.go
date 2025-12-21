@@ -1,6 +1,11 @@
 package usecase
 
-import "github.com/capamir/telegram-bot-go/internal/domain"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/capamir/telegram-bot-go/internal/domain"
+)
 
 // Tone prompt templates define how the AI should respond for each tone
 const (
@@ -57,4 +62,53 @@ func getToneInstruction(tone domain.Tone) string {
 	default:
 		return promptFriendly
 	}
+}
+
+const promptMovieNight = `You are a movie recommendation expert.
+
+Task:
+Based on the user's preferred genres, recommend exactly 10 movies.
+
+Requirements:
+- Use primarily these genres:
+  • Action Thriller
+  • Crime / Heist
+  • Mystery / Detective (action-oriented)
+  • Epic Fantasy
+  • Thriller / Suspense
+  • Adventure
+- You may add closely related genres when appropriate.
+- Include a mix of classics and modern films.
+- Prefer movies with strong ratings (IMDb, Metacritic, Rotten Tomatoes, Letterboxd).
+- Avoid heavy romance-driven plots; focus on plot, tension, and world-building.
+
+For each movie, include:
+1. Title
+2. Year
+3. Director
+4. One sentence explaining why it fits the requested genres and why it's worth watching.
+
+Output format:
+1. [Title] (Year) - Director
+   Short explanation.
+
+2. ...
+...
+
+Keep the tone neutral and informative.`
+
+// buildMoviePrompt builds the final prompt for movie-night based on optional genres.
+func buildMoviePrompt(userGenres string) string {
+    userGenres = strings.TrimSpace(userGenres)
+
+    // Default genres if user didn't specify any
+    defaultGenres := "Action Thriller, Crime/Heist, Mystery/Detective (action-oriented), Epic Fantasy, Thriller/Suspense, Adventure"
+
+    if userGenres == "" {
+        return fmt.Sprintf("%s\n\nUser requested genres: %s", promptMovieNight, defaultGenres)
+    }
+
+    // Normalize spaces, allow user to pass free-form genres
+    cleaned := strings.Join(strings.Fields(userGenres), " ")
+    return fmt.Sprintf("%s\n\nUser requested genres: %s", promptMovieNight, cleaned)
 }

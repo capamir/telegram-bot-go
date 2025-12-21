@@ -77,3 +77,19 @@ func buildPrompt(msg *domain.Message) string {
     // Fallback to direct question
     return msg.Text
 }
+
+// HandleMovieNight builds a movie prompt and gets recommendations from AI.
+func (uc *ChatUsecase) HandleMovieNight(ctx context.Context, rawGenres string, chatID int64) (*domain.Response, error) {
+    // Build the movie-specific prompt
+    prompt := buildMoviePrompt(rawGenres)
+
+    // Reuse the same flow as HandleMessage but without tone logic
+    aiResponse, err := uc.ai.Generate(ctx, prompt)
+    if err != nil {
+        return nil, err
+    }
+
+    return &domain.Response{
+        Text: aiResponse,
+    }, nil
+}

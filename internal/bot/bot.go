@@ -53,7 +53,10 @@ func (b *Bot) RegisterHandlers() {
     b.RegisterHandler(bot.HandlerTypeMessageText, "/friendly", bot.MatchTypePrefix, b.toneCommandHandler)
     b.RegisterHandler(bot.HandlerTypeMessageText, "/professional", bot.MatchTypePrefix, b.toneCommandHandler)
     
-    // Default handler
+	// Feature commands
+	b.RegisterHandler(bot.HandlerTypeMessageText, "/movie-night", bot.MatchTypePrefix, b.MovieNightHandler)
+    
+	// Default handler
     b.RegisterHandlerMatchFunc(func(update *models.Update) bool {
         return update.Message != nil && update.Message.Text != "" && !strings.HasPrefix(update.Message.Text, "/")
     }, b.defaultHandler)
