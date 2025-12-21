@@ -1,5 +1,5 @@
 # Telegram AI Bot (Go)
-**v0.4.3** -  Processing message
+**v0.4.31** -  fixing MESSAGE_TOO_LONG error
 
 A Telegram bot powered by Google Gemini AI, built with Clean Architecture in Go.
 

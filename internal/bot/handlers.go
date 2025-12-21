@@ -12,7 +12,7 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-// sendAIResponse handles the complete flow of showing loading state and sending AI response
+// sendAIResponse handles loading state and sends AI response
 func (b *Bot) sendAIResponse(
     ctx context.Context,
     tgBot *bot.Bot,
@@ -20,7 +20,7 @@ func (b *Bot) sendAIResponse(
     questionText string,
     responseFunc func() (*domain.Response, error),
 ) {
-    // 1. Show typing indicator
+    // 1. Show initial typing indicator
     _, _ = tgBot.SendChatAction(ctx, &bot.SendChatActionParams{
         ChatID: chatID,
         Action: models.ChatActionTyping,
@@ -32,7 +32,7 @@ func (b *Bot) sendAIResponse(
         err      error
     }
     responseChan := make(chan result, 1)
-    stopTyping := make(chan struct{})  // ← NEW: Signal to stop typing
+    stopTyping := make(chan struct{})
     
     // 3. Call AI in goroutine
     go func() {
@@ -58,7 +58,7 @@ func (b *Bot) sendAIResponse(
             Text:   "⏳ Processing your request...",
         })
         
-        // Continue typing indicator every 5s while waiting
+        // Keep showing typing indicator every 5s
         go func() {
             ticker := time.NewTicker(5 * time.Second)
             defer ticker.Stop()
@@ -67,7 +67,7 @@ func (b *Bot) sendAIResponse(
                 select {
                 case <-ctx.Done():
                     return
-                case <-stopTyping:  // ← FIXED: Listen to done signal
+                case <-stopTyping:
                     return
                 case <-ticker.C:
                     _, _ = tgBot.SendChatAction(ctx, &bot.SendChatActionParams{
@@ -83,8 +83,8 @@ func (b *Bot) sendAIResponse(
         response = res.response
         err = res.err
         
-        // Stop the typing goroutine
-        close(stopTyping)  // ← NEW: Signal goroutine to stop
+        // Stop typing indicator
+        close(stopTyping)
     }
     
     // 5. Handle errors
@@ -109,43 +109,114 @@ func (b *Bot) sendAIResponse(
     // 6. Format response
     formattedResponse := formatResponseWithQuestion(questionText, response.Text)
     
-    // 7. Send or edit message
+    // 7. Handle long responses (split if needed)
+    if len(formattedResponse) > 4096 {
+        // Response is too long, send in chunks
+        b.sendLongMessage(ctx, tgBot, chatID, formattedResponse, loadingMsg)
+        return
+    }
+    
+    // 8. Send response as NEW message (don't edit)
+    _, err = tgBot.SendMessage(ctx, &bot.SendMessageParams{
+        ChatID:    chatID,
+        Text:      formattedResponse,
+        ParseMode: models.ParseModeHTML,
+    })
+    
+    if err != nil {
+        log.Printf("Error sending response: %v", err)
+    }
+    
+    // 9. Delete loading message after sending response (optional)
+    // Uncomment if you want to remove the "Processing..." message
+    // if loadingMsg != nil {
+    //     time.Sleep(500 * time.Millisecond)  // Brief delay so user sees transition
+    //     _ = tgBot.DeleteMessage(ctx, &bot.DeleteMessageParams{
+    //         ChatID:    chatID,
+    //         MessageID: loadingMsg.ID,
+    //     })
+    // }
+}
+
+// sendLongMessage splits and sends messages that exceed Telegram's limit
+func (b *Bot) sendLongMessage(
+    ctx context.Context,
+    tgBot *bot.Bot,
+    chatID int64,
+    text string,
+    loadingMsg *models.Message,
+) {
+    const maxLength = 4000  // Leave buffer for formatting
+    
+    // Delete loading message first
     if loadingMsg != nil {
-        // Edit the loading message
-        _, err = tgBot.EditMessageText(ctx, &bot.EditMessageTextParams{
+        _, _ = tgBot.DeleteMessage(ctx, &bot.DeleteMessageParams{
             ChatID:    chatID,
             MessageID: loadingMsg.ID,
-            Text:      formattedResponse,
-            ParseMode: models.ParseModeHTML,
         })
-        
-        // If edit fails (rare), delete and send new
-        if err != nil {
-            log.Printf("Failed to edit message, sending new: %v", err)
-            _, _ = tgBot.DeleteMessage(ctx, &bot.DeleteMessageParams{
-                ChatID:    chatID,
-                MessageID: loadingMsg.ID,
-            })
-            
-            _, _ = tgBot.SendMessage(ctx, &bot.SendMessageParams{
-                ChatID:    chatID,
-                Text:      formattedResponse,
-                ParseMode: models.ParseModeHTML,
-            })
+    }
+    
+    // Split message into chunks
+    parts := splitMessage(text, maxLength)
+    
+    for i, part := range parts {
+        // Add part indicator if multiple parts
+        if len(parts) > 1 {
+            part = fmt.Sprintf("📄 Part %d/%d\n\n%s", i+1, len(parts), part)
         }
-    } else {
-        // Send normally (fast response, no loading message)
-        _, err = tgBot.SendMessage(ctx, &bot.SendMessageParams{
+        
+        _, err := tgBot.SendMessage(ctx, &bot.SendMessageParams{
             ChatID:    chatID,
-            Text:      formattedResponse,
+            Text:      part,
             ParseMode: models.ParseModeHTML,
         })
         
         if err != nil {
-            log.Printf("Error sending response: %v", err)
+            log.Printf("Error sending message part %d: %v", i+1, err)
+        }
+        
+        // Small delay between parts
+        if i < len(parts)-1 {
+            time.Sleep(300 * time.Millisecond)
         }
     }
 }
+
+// splitMessage splits text into chunks without breaking words
+func splitMessage(text string, maxLength int) []string {
+    if len(text) <= maxLength {
+        return []string{text}
+    }
+    
+    var parts []string
+    remaining := text
+    
+    for len(remaining) > maxLength {
+        // Find last newline before maxLength
+        splitAt := maxLength
+        lastNewline := strings.LastIndex(remaining[:maxLength], "\n")
+        
+        if lastNewline > 0 {
+            splitAt = lastNewline
+        } else {
+            // Find last space before maxLength
+            lastSpace := strings.LastIndex(remaining[:maxLength], " ")
+            if lastSpace > 0 {
+                splitAt = lastSpace
+            }
+        }
+        
+        parts = append(parts, strings.TrimSpace(remaining[:splitAt]))
+        remaining = strings.TrimSpace(remaining[splitAt:])
+    }
+    
+    if len(remaining) > 0 {
+        parts = append(parts, remaining)
+    }
+    
+    return parts
+}
+
 
 // StartHandler handles the /start command
 func (b *Bot) StartHandler(ctx context.Context, tgBot *bot.Bot, update *models.Update) {
