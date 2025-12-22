@@ -1,3 +1,4 @@
+// internal/bot/handlers.go
 package bot
 
 import (
@@ -6,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/capamir/telegram-bot-go/internal/domain"
-	"github.com/capamir/telegram-bot-go/internal/utils"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )
@@ -25,6 +25,7 @@ To chat with me, choose a tone command:
 • /serious - Professional, detailed answers
 • /satirical - Sarcastic, humorous responses
 • /friendly - Casual conversation
+• /professional - Business language
 
 Example:
 /satirical Why is Go better than Python?
@@ -34,7 +35,6 @@ Type /help for more information.`
 	_, err := tgBot.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
 		Text:   welcomeText,
-		// ← Remove ParseMode line
 	})
 	if err != nil {
 		log.Printf("Error sending start message: %v", err)
@@ -49,10 +49,11 @@ How to Use:
 Simply choose a tone and ask your question!
 
 Tone Commands:
-• /ask <question> - Friendly conversation (default)
-• /serious <question> - Professional answers
-• /satirical <question> - Sarcastic humor
-• /friendly <question> - Casual chat
+• /ask - Friendly conversation (default)
+• /serious - Professional answers
+• /satirical - Sarcastic humor
+• /friendly - Casual chat
+• /professional - Business language
 
 Feature Commands:
 • /movie-night [genres] - Get movie recommendations
@@ -87,7 +88,6 @@ Powered by Google Gemini 2.5 Flash 🤖✨`
 
 // defaultHandler handles all non-command messages
 func (b *Bot) defaultHandler(ctx context.Context, tgBot *bot.Bot, update *models.Update) {
-	// Only process text messages
 	if update.Message == nil || update.Message.Text == "" {
 		return
 	}
@@ -100,6 +100,7 @@ To chat with me, choose a tone command:
 • /serious - Professional, detailed answers
 • /satirical - Sarcastic, humorous responses
 • /friendly - Casual conversation
+• /professional - Business language
 
 Example:
 /satirical Why is Go better than Python?
@@ -114,35 +115,35 @@ Type /help for more information.`
 
 // handleAICommand is a shared helper for all AI tone commands
 func (b *Bot) handleAICommand(
-    ctx context.Context,
-    tgBot *bot.Bot,
-    update *models.Update,
-    tone domain.Tone,
-    commandName string,
+	ctx context.Context,
+	tgBot *bot.Bot,
+	update *models.Update,
+	tone domain.Tone,
+	commandName string,
 ) {
-    // 1. Extract text after command
-    text := strings.TrimSpace(strings.TrimPrefix(update.Message.Text, commandName))
-    
-    // 2. Validate
-    if text == "" {
-        _, _ = tgBot.SendMessage(ctx, &bot.SendMessageParams{
-            ChatID: update.Message.Chat.ID,
-            Text:   "🤔 Please write your question!\n\nExample:\n" + commandName + " What is quantum computing?",
-        })
-        return
-    }
-    
-    // 3. Create domain message
-    domainMsg := &domain.Message{
-        ChatID: update.Message.Chat.ID,
-        Text:   text,
-        Tone:   tone,
-    }
-    
-    // 4. Use helper to handle loading + response
-    b.sendAIResponse(ctx, tgBot, update.Message.Chat.ID, text, func() (*domain.Response, error) {
-        return b.usecase.HandleMessage(ctx, domainMsg)
-    })
+	// Extract text after command
+	text := strings.TrimSpace(strings.TrimPrefix(update.Message.Text, commandName))
+
+	// Validate
+	if text == "" {
+		_, _ = tgBot.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: update.Message.Chat.ID,
+			Text:   "🤔 Please write your question!\n\nExample:\n" + commandName + " What is quantum computing?",
+		})
+		return
+	}
+
+	// Create domain message
+	domainMsg := &domain.Message{
+		ChatID: update.Message.Chat.ID,
+		Text:   text,
+		Tone:   tone,
+	}
+
+	// Use helper to handle loading + response
+	b.sendAIResponse(ctx, tgBot, update.Message.Chat.ID, text, func() (*domain.Response, error) {
+		return b.usecase.HandleMessage(ctx, domainMsg)
+	})
 }
 
 // toneCommandHandler handles all tone-based AI commands dynamically
@@ -176,34 +177,17 @@ func (b *Bot) MovieNightHandler(ctx context.Context, tgBot *bot.Bot, update *mod
 	fullText := update.Message.Text
 	command := "/movie-night"
 
-	// Extract everything after "/movie-night"
+	// Extract genres
 	rawGenres := strings.TrimSpace(strings.TrimPrefix(fullText, command))
 
-	// Call dedicated usecase method
-	response, err := b.usecase.HandleMovieNight(ctx, rawGenres, update.Message.Chat.ID)
-	if err != nil {
-		log.Printf("Error handling movie-night: %v", err)
-		_, _ = tgBot.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID: update.Message.Chat.ID,
-			Text:   "Sorry, I couldn't fetch movie recommendations. Please try again.",
-		})
-		return
-	}
-
-	// For movie-night, the "question" is the genres or a default label
+	// Question text for display
 	questionText := rawGenres
 	if questionText == "" {
-		questionText = "Movie-night recommendations based on your preferred genres"
+		questionText = "Movie recommendations based on your preferred genres"
 	}
 
-	formattedResponse := utils.FormatResponseWithQuestion(questionText, response.Text)
-
-	_, err = tgBot.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:    update.Message.Chat.ID,
-		Text:      formattedResponse,
-		ParseMode: models.ParseModeHTML,
+	// Use helper to handle loading + response (CONSISTENT WITH OTHER COMMANDS)
+	b.sendAIResponse(ctx, tgBot, update.Message.Chat.ID, questionText, func() (*domain.Response, error) {
+		return b.usecase.HandleMovieNight(ctx, rawGenres, update.Message.Chat.ID)
 	})
-	if err != nil {
-		log.Printf("Error sending movie-night response: %v", err)
-	}
 }

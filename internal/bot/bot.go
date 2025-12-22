@@ -1,3 +1,4 @@
+// internal/bot/bot.go
 package bot
 
 import (
@@ -42,22 +43,22 @@ func New(ctx context.Context, token string, uc *usecase.ChatUsecase) (*Bot, erro
 
 // RegisterHandlers registers all command handlers for the bot
 func (b *Bot) RegisterHandlers() {
-    // Command handlers
-    b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, b.StartHandler)
-    b.RegisterHandler(bot.HandlerTypeMessageText, "/help", bot.MatchTypeExact, b.HelpHandler)
-    
-    // All tone commands use the same handler
-    b.RegisterHandler(bot.HandlerTypeMessageText, "/ask", bot.MatchTypePrefix, b.toneCommandHandler)
-    b.RegisterHandler(bot.HandlerTypeMessageText, "/serious", bot.MatchTypePrefix, b.toneCommandHandler)
-    b.RegisterHandler(bot.HandlerTypeMessageText, "/satirical", bot.MatchTypePrefix, b.toneCommandHandler)
-    b.RegisterHandler(bot.HandlerTypeMessageText, "/friendly", bot.MatchTypePrefix, b.toneCommandHandler)
-    b.RegisterHandler(bot.HandlerTypeMessageText, "/professional", bot.MatchTypePrefix, b.toneCommandHandler)
-    
+	// Basic commands
+	b.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, b.StartHandler)
+	b.RegisterHandler(bot.HandlerTypeMessageText, "/help", bot.MatchTypeExact, b.HelpHandler)
+
+	// Tone command handlers
+	b.RegisterHandler(bot.HandlerTypeMessageText, "/ask", bot.MatchTypePrefix, b.toneCommandHandler)
+	b.RegisterHandler(bot.HandlerTypeMessageText, "/serious", bot.MatchTypePrefix, b.toneCommandHandler)
+	b.RegisterHandler(bot.HandlerTypeMessageText, "/satirical", bot.MatchTypePrefix, b.toneCommandHandler)
+	b.RegisterHandler(bot.HandlerTypeMessageText, "/friendly", bot.MatchTypePrefix, b.toneCommandHandler)
+	b.RegisterHandler(bot.HandlerTypeMessageText, "/professional", bot.MatchTypePrefix, b.toneCommandHandler)
+
 	// Feature commands
-	b.RegisterHandler(bot.HandlerTypeMessageText, "/movie-night", bot.MatchTypePrefix, b.MovieNightHandler)
-    
-	// Default handler
-    b.RegisterHandlerMatchFunc(func(update *models.Update) bool {
-        return update.Message != nil && update.Message.Text != "" && !strings.HasPrefix(update.Message.Text, "/")
-    }, b.defaultHandler)
+	b.RegisterHandler(bot.HandlerTypeMessageText, "/movie-night", bot.MatchTypePrefix, b.MovieNightHandler)  // ← FIXED: Added!
+
+	// Default handler for non-command messages
+	b.RegisterHandlerMatchFunc(func(update *models.Update) bool {
+		return update.Message != nil && update.Message.Text != "" && !strings.HasPrefix(update.Message.Text, "/")
+	}, b.defaultHandler)
 }
