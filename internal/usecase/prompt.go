@@ -112,3 +112,27 @@ func buildMoviePrompt(userGenres string) string {
     cleaned := strings.Join(strings.Fields(userGenres), " ")
     return fmt.Sprintf("%s\n\nUser requested genres: %s", promptMovieNight, cleaned)
 }
+
+const promptDiarySystem = `You are a reflective journaling assistant. 
+Your task is to analyze a user's diary entry and provide a structured summary, detect the mood, and suggest relevant tags.
+
+CRITICAL: You must return your analysis in a valid JSON block followed by a friendly message.
+The JSON must follow this structure:
+{
+  "summary": "A concise 2-3 sentence summary of the day starting with #diary",
+  "mood": "One word representing the emotional tone",
+  "tags": ["tag1", "tag2"]
+}
+
+Example Output:
+'''json
+{
+  "summary": "#diary Today was productive. I finished the Go project and felt a great sense of accomplishment.",
+  "mood": "Accomplished",
+  "tags": ["coding", "productivity", "go"]
+}
+'''`
+
+func buildDiaryPrompt(text string) string {
+	return fmt.Sprintf("%s\n\nUser's Diary Entry: %s", promptDiarySystem, text)
+}
