@@ -191,3 +191,23 @@ func (b *Bot) MovieNightHandler(ctx context.Context, tgBot *bot.Bot, update *mod
 		return b.usecase.HandleMovieNight(ctx, rawGenres, update.Message.Chat.ID)
 	})
 }
+
+func (b *Bot) DiaryHandler(ctx context.Context, tgBot *bot.Bot, update *models.Update) {
+    text := strings.TrimSpace(strings.TrimPrefix(update.Message.Text, "/diary"))
+    if text == "" {
+        _, _ = tgBot.SendMessage(ctx, &bot.SendMessageParams{
+            ChatID: update.Message.Chat.ID,
+            Text:   "📝 Please write your diary entry after the command!\nExample: /diary Today I learned about Dependency Injection in Go.",
+        })
+        return
+    }
+
+    domainMsg := &domain.Message{
+        ChatID: update.Message.Chat.ID,
+        Text:   text,
+    }
+
+    b.sendAIResponse(ctx, tgBot, update.Message.Chat.ID, text, func() (*domain.Response, error) {
+        return b.usecase.HandleDiary(ctx, domainMsg)
+    })
+}

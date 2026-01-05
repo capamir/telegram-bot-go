@@ -57,6 +57,8 @@ func (b *Bot) RegisterHandlers() {
 	// Feature commands
 	b.RegisterHandler(bot.HandlerTypeMessageText, "/movie-night", bot.MatchTypePrefix, b.MovieNightHandler)  // ← FIXED: Added!
 
+	b.RegisterHandler(bot.HandlerTypeMessageText, "/diary", bot.MatchTypePrefix, b.DiaryHandler)
+
 	// Default handler for non-command messages
 	b.RegisterHandlerMatchFunc(func(update *models.Update) bool {
 		return update.Message != nil && update.Message.Text != "" && !strings.HasPrefix(update.Message.Text, "/")
